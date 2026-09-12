@@ -1,0 +1,45 @@
+name: Test ListenHub Owen
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate Owen test audio
+        env:
+          LISTENHUB_API_KEY: ${{ secrets.LISTENHUB_API_KEY }}
+
+        run: |
+          RESPONSE=$(curl -sS -X POST \
+            "https://api.marswave.ai/openapi/v1/speech" \
+            -H "Authorization: Bearer $LISTENHUB_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "scripts": [
+                {
+                  "content": "This is a short test of the automated ListenHub publishing system. If you can hear Owen reading this, the connection is working.",
+                  "speakerId": "English-GentleTeacher"
+                }
+              ],
+              "speed": 1
+            }')
+
+          echo "$RESPONSE" | jq .
+
+          CODE=$(echo "$RESPONSE" | jq -r '.code')
+
+          if [ "$CODE" != "0" ]; then
+            echo "ListenHub returned an error."
+            exit 1
+          fi
+
+          AUDIO_URL=$(echo "$RESPONSE" | jq -r '.data.audioUrl')
+
+          echo "Audio URL: $AUDIO_URL"
+
+          echo "## ListenHub Test Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Play Owen test audio]($AUDIO_URL)" >> "$GITHUB_STEP_SUMMARY"
